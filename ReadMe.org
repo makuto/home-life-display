@@ -1,0 +1,85 @@
+* home-life-display
+
+Make a Raspberry Pi E-paper display show org tasks and other stuff I care about.
+
+The E-paper panel is a [[https://www.waveshare.com/product/7.5inch-e-paper-hat-b.htm][Waveshare E-Ink three-color 7.5 inch panel with HAT]].
+
+** Setup
+
+More for my own reference than anyone else, which is why there are some obvious general setup steps specific to Pi, not this project.
+
+*** Operating System
+
+This section documents a general, minimal, and useful Pi setup.
+
+- Install Raspbian Lite via NOOBs onto Raspberry Pi 3 B+.
+- Run ~passwd~ to change default password
+- ~sudo apt update && sudo apt upgrade~
+
+**** Raspi-config
+
+~sudo raspi-config~
+
+- Enable SSH in *Interfacing Options*
+- Set localisation options (for me, it means checking ~en-US~)
+- Set Wifi hostname and password, if necessary
+
+*** Clone Repository
+
+#+BEGIN_SRC sh
+sudo apt install git
+git clone --recurse-submodules https://github.com/makuto/home-life-display
+#+END_SRC
+
+If run with ~--recurse-submodules~ as shown, it will automatically get the [[https://github.com/waveshare/e-Paper][Waveshare e-Paper code repository]].
+
+If you forgot:
+
+#+BEGIN_SRC sh
+cd home-life-display
+git submodule init
+git submodule update
+#+END_SRC
+
+*** E-paper Setup
+
+**** Python dependencies
+
+#+BEGIN_SRC sh
+sudo apt install python3-pip libjpeg-dev
+sudo pip3 install spidev RPi.GPIO pillow
+#+END_SRC
+
+**** Enable SPI interface
+
+#+BEGIN_SRC sh
+nano /boot/config.txt
+#+END_SRC
+
+Uncomment the line with ~dtparam=spi=on~.
+
+**** Waveshare Example Code
+
+/This step is optional. Left for reference./
+
+Download [[https://www.waveshare.com/wiki/File:7.5inch-e-paper-hat-code.7z][E-paper Demo code (direct link)]] ([[https://github.com/waveshare/e-Paper][Github]]).
+
+For decompressing the [[https://www.waveshare.com/wiki/File:7.5inch-e-paper-hat-code.7z][Waveshare example code]]:
+
+#+BEGIN_SRC sh
+sudo apt install p7zip
+#+END_SRC
+
+***** Install Fonts
+
+For the unmodified demo code, you need to install the Chinese + English font they chose:
+
+#+BEGIN_SRC sh
+sudo apt install ttf-wqy-microhei
+#+END_SRC
+
+** Docs
+
+- [[https://www.waveshare.com/w/upload/7/74/7.5inch-e-paper-hat-user-manual-en.pdf][Waveshare E-paper manual]]
+- [[https://www.waveshare.com/wiki/7.5inch_e-Paper_HAT][E-paper wiki]]
+- [[https://www.waveshare.com/wiki/File:7.5inch-e-paper-hat-code.7z][E-paper Demo code (direct link)]] [[https://github.com/waveshare/e-Paper][Github]]
