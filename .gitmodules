@@ -1,3 +1,6 @@
 [submodule "e-Paper"]
 	path = e-Paper
 	url = https://github.com/waveshare/e-Paper
+[submodule "dropbox-sdk-python"]
+	path = dropbox-sdk-python
+	url = git://github.com/dropbox/dropbox-sdk-python.git

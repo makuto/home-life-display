@@ -41,6 +41,17 @@ git submodule init
 git submodule update
 #+END_SRC
 
+*** Third Party APIs
+**** Dropbox
+
+Dropbox is included as a submodule.
+
+[[https://github.com/dropbox/dropbox-sdk-python][Dropbox Python SDK]]
+
+#+BEGIN_SRC sh
+cd dropbox-sdk-python
+sudo python3 setup.py install
+#+END_SRC
 *** E-paper Setup
 
 **** Python dependencies
