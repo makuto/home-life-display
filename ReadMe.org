@@ -1,6 +1,9 @@
-* home-life-display
+* Home Life Display
 
-Make a Raspberry Pi E-paper display show org tasks and other stuff I care about.
+Make a Raspberry Pi E-paper display show info in the morning/evening which I care about:
+- Org agenda
+- Weather conditions for biking to work on the current day
+- Kanji study schedule
 
 The E-paper panel is a [[https://www.waveshare.com/product/7.5inch-e-paper-hat-b.htm][Waveshare E-Ink three-color 7.5 inch panel with HAT]].
 
@@ -41,17 +44,33 @@ git submodule init
 git submodule update
 #+END_SRC
 
-*** Third Party APIs
+*** Third Party Setup
 **** Dropbox
 
-Dropbox is included as a submodule.
+I use Dropbox to sync my .org files across multiple computers.
 
-[[https://github.com/dropbox/dropbox-sdk-python][Dropbox Python SDK]]
+[[https://github.com/dropbox/dropbox-sdk-python][Dropbox Python SDK]] is included as a submodule.
+
+You will need to install it:
 
 #+BEGIN_SRC sh
 cd dropbox-sdk-python
 sudo python3 setup.py install
 #+END_SRC
+
+Next,
+
+- [[https://dropbox.com/developers/apps][Get an access token]] (I needed full rights)
+- Add it to ~settings.json~ (~dropbox_token~)
+**** Fonts
+
+Download the [[https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip][Ubuntu Font Family]] (see [[https://design.ubuntu.com/font/][design page]] for more info on the font) and extract it:
+
+#+BEGIN_SRC sh
+curl https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip > ubuntu-font.zip
+unzip ubuntu-font.zip
+#+END_SRC
+
 *** E-paper Setup
 
 **** Python dependencies
@@ -66,6 +85,7 @@ sudo pip3 install spidev RPi.GPIO pillow
 There was no ~setup.py~ nor ~init.py~ for the e-Paper API, so just symlink them to the same directory instead:
 
 #+BEGIN_SRC sh
+cd home-life-display
 ln -s e-Paper/7.5inch_e-paper_code/RaspberryPi/python3/epd7in5.py epd7in5.py
 ln -s e-Paper/7.5inch_e-paper_code/RaspberryPi/python3/epdconfig.py epdconfig.py
 #+END_SRC
@@ -78,9 +98,15 @@ nano /boot/config.txt
 
 Uncomment the line with ~dtparam=spi=on~.
 
-**** Waveshare Example Code
+** Third Party Documentation
 
-/This step is optional. Left for reference./
+- [[https://www.waveshare.com/w/upload/7/74/7.5inch-e-paper-hat-user-manual-en.pdf][Waveshare E-paper manual]]
+- [[https://www.waveshare.com/wiki/7.5inch_e-Paper_HAT][E-paper wiki]]
+- [[https://www.waveshare.com/wiki/File:7.5inch-e-paper-hat-code.7z][E-paper Demo code (direct link)]] [[https://github.com/waveshare/e-Paper][Github]]
+
+*** Waveshare Example Code
+
+/Left here for reference./
 
 Download [[https://www.waveshare.com/wiki/File:7.5inch-e-paper-hat-code.7z][E-paper Demo code (direct link)]] ([[https://github.com/waveshare/e-Paper][Github]]).
 
@@ -90,16 +116,10 @@ For decompressing the [[https://www.waveshare.com/wiki/File:7.5inch-e-paper-hat-
 sudo apt install p7zip
 #+END_SRC
 
-***** Install Fonts
+**** Install Fonts
 
 For the unmodified demo code, you need to install the Chinese + English font they chose:
 
 #+BEGIN_SRC sh
 sudo apt install ttf-wqy-microhei
 #+END_SRC
-
-** Docs
-
-- [[https://www.waveshare.com/w/upload/7/74/7.5inch-e-paper-hat-user-manual-en.pdf][Waveshare E-paper manual]]
-- [[https://www.waveshare.com/wiki/7.5inch_e-Paper_HAT][E-paper wiki]]
-- [[https://www.waveshare.com/wiki/File:7.5inch-e-paper-hat-code.7z][E-paper Demo code (direct link)]] [[https://github.com/waveshare/e-Paper][Github]]

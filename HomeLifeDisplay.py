@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
 
+import datetime
 import json
 import os
 
@@ -63,11 +64,14 @@ def initializeEPaper():
         epaperDisplay.init()
         print("E-Paper: Clear")
         epaperDisplay.Clear(0xFF)
-        
-        epaperDisplay.sleep()
+
+        # If you sleep here, it won't respond to commands
+        # epaperDisplay.sleep()
     except:
         print('traceback.format_exc():\n%s', traceback.format_exc())
         exit()
+
+    print("E-paper initialized")
         
 def sleepEPaper():
     if epaperDisplay:
@@ -80,6 +84,106 @@ def sleepEPaper():
 Main
 """
 
+# Black < 64
+Color_EPaper_Black = 0
+# 64 < Red < 192
+Color_EPaper_Red = 180
+# 192 < White
+Color_EPaper_White = 255
+
+# Colors for non-Epaper display
+Color_RGB_Black = (0, 0, 0)
+Color_RGB_Red = (255, 0, 0)
+Color_RGB_White = (255, 255, 255)
+
+convertEPaperColorToRGB = {
+    Color_EPaper_Black:Color_RGB_Black,
+    Color_EPaper_Red:Color_RGB_Red,
+    Color_EPaper_White:Color_RGB_White}
+
+# Useful for testing without wearing out the display
+def imageConvertMode1BPPToRGB(image):
+    convertedImage = Image.new("RGB", (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_RGB_White)
+    convertedData = []
+    for y in range(image.height):
+        for x in range(image.width):
+            value = image.getpixel((x, y))
+            convertedData.append(convertEPaperColorToRGB[value])
+    convertedImage.putdata(convertedData)
+    return convertedImage
+
+# Fonts
+# For Japanese
+fontMicrohei = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 24)
+fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 32)
+# For English
+fontUbuntuMono = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 24)
+fontUbuntuMonoHuge = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 64)
+
+class Layout:
+    def __init__(self):
+        self.margins = 10
+        self.topHeader = 74
+
+def drawLayout1BPPImage():
+    layout = Layout()
+    
+    # Clear the frame
+    # 1 = 1 byte per pixel mode
+    image = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
+    draw = ImageDraw.Draw(image)
+    
+    # Large date
+    timeNow = datetime.date.today()
+    dateString = timeNow.strftime("%b\n%d")
+    # Right align by getting text size
+    dateTextSize = draw.multiline_textsize(dateString, font = fontUbuntuMonoHuge)
+    draw.multiline_text((epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins, layout.margins), dateString,
+                        font = fontUbuntuMonoHuge, fill = Color_EPaper_Red, align = "right")
+
+    #
+    # Header
+    #
+    headerLabel = u'日本語'
+    draw.text((layout.margins, layout.margins), headerLabel, font = fontMicroheiHuge, fill = Color_EPaper_Red)
+    headerLabelSize = draw.textsize(headerLabel, font = fontMicroheiHuge)
+    draw.multiline_text((layout.margins + headerLabelSize[0] + 5, layout.margins), u"""T  W  BM M  2M 4M
+2  4  12 2  9  25
+""", font = fontUbuntuMono, fill = Color_EPaper_Black)
+    
+    # Divider
+    draw.line((layout.margins, layout.topHeader, epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins, layout.topHeader),
+              fill = Color_EPaper_Black)
+
+    #
+    # Body
+    #
+    draw.text((layout.margins, layout.topHeader), 'Vivian sux', font = fontUbuntuMono, fill = Color_EPaper_Black)
+    draw.text((layout.margins, layout.topHeader + 20), 'Macoy #1', font = fontUbuntuMono, fill = Color_EPaper_Red)
+    draw.text((layout.margins, layout.topHeader + 40), u'ビビアンさんは、食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Red)
+    
+    # draw.line((70, 50, 20, 100), fill = 0)
+    # draw.rectangle((20, 50, 70, 100), outline = 0)
+    # draw.line((165, 50, 165, 100), fill = 0)
+    # draw.line((140, 75, 190, 75), fill = 0)
+    # draw.arc((140, 50, 190, 100), 0, 360, fill = 0)
+    # draw.rectangle((80, 50, 130, 100), fill = 0)
+    # draw.chord((200, 50, 250, 100), 0, 360, fill = 0)
+    
+    return image
+
+def imageDisplayOnEPaper(image):
+    if not epaperDisplay:
+        print("No epaper display!")
+        return
+
+    print("Home Life Display drawing...")
+
+    epaperDisplay.display(epaperDisplay.getbuffer(image))
+    time.sleep(2)
+    epaperDisplay.sleep()
+
+# Import dropbox, if usable
 # Don't load something which can't be used (importing dropbox takes a while)
 if settings["dropbox_token"] and debugEnableAPIRequests:
     print("Importing dropbox API...")
@@ -100,14 +204,27 @@ def main():
         dbx = dropbox.Dropbox(settings["dropbox_token"])
         print(dbx.users_get_current_account())
 
+    image = drawLayout1BPPImage()
+        
     if debugEnableEPaperDisplay:
         initializeEPaper()
+        imageDisplayOnEPaper(image)
+
+    # Output image
+    image = drawLayout1BPPImage()
+    outputFilename = "output.png"
+    imageConvertMode1BPPToRGB(image).save(outputFilename)
+    print("Saved to {}".format(outputFilename))
 
 if __name__ == '__main__':
     print("\nStarted Home Life Display\n")
     try:
         main()
-    except:
+    except Exception as e:
+        print('[ERROR] Exception:\n\t {}'
+              .format(e))
+    finally:
         # Make sure we put the display to sleep, otherwise it
         # could get damaged
+        print("Putting E-Paper to sleep (sweet dreams~~)")
         sleepEPaper()
