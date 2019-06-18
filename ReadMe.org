@@ -1,5 +1,5 @@
 * Home Life Display
-[[./output.png][Example output]]
+[[file:output.png]]
 Make a Raspberry Pi E-paper display show info in the morning/evening which I care about:
 - Org agenda
 - Weather conditions for biking to work on the current day
