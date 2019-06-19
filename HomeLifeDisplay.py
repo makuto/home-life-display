@@ -50,6 +50,8 @@ loadSettings()
 E-Paper Display
 """
 
+# TODO: *important* Blank display during the night time to prevent burn in (look up best practices there)
+
 epaperDisplay = None
 
 # Clear the e-paper
@@ -191,9 +193,9 @@ def drawLayout1BPPImage():
     #
     # Body
     #
-    draw.text((layout.margins, layout.topHeader), 'XXX sux', font = fontUbuntuMono, fill = Color_EPaper_Black)
-    draw.text((layout.margins, layout.topHeader + 20), 'XXX #1', font = fontUbuntuMono, fill = Color_EPaper_Red)
-    draw.text((layout.margins, layout.topHeader + 40), u'Xさんは、食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Red)
+    draw.text((layout.margins, layout.topHeader), 'Agenda', font = fontUbuntuMono, fill = Color_EPaper_Black)
+    draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Red)
+    draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Red)
     
     # draw.line((70, 50, 20, 100), fill = 0)
     # draw.rectangle((20, 50, 70, 100), outline = 0)
@@ -261,3 +263,7 @@ if __name__ == '__main__':
         # could get damaged
         print("Putting E-Paper to sleep (sweet dreams~~)")
         sleepEPaper()
+
+# Local Variables:
+# compile-command: "./HomeLifeDisplay.py"
+# End:
