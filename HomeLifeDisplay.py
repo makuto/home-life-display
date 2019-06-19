@@ -117,7 +117,7 @@ def imageConvertMode1BPPToRGB(image):
 # Fonts
 # For Japanese
 fontMicrohei = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 24)
-fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 32)
+fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 36)
 # For English
 fontUbuntuMono = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 24)
 fontUbuntuMonoHuge = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 64)
@@ -125,7 +125,7 @@ fontUbuntuMonoHuge = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.tt
 class Layout:
     def __init__(self):
         self.margins = 10
-        self.topHeader = 74
+        self.topHeader = 64
 
 def drawLayout1BPPImage():
     layout = Layout()
@@ -151,10 +151,10 @@ def drawLayout1BPPImage():
     headerLabelSize = draw.textsize(headerLabel, font = fontMicroheiHuge)
 
     # Study review schedule
-    kanjiSchedule = u''
     # Interval:days
     # kanjiScheduleIntervals = [('T', 3), ('W', 7), ('BM', 15), ('M', 30), ('2M', 60), ('4M', 120), ('6M', 180)]
-    kanjiScheduleIntervalsJapanese = [(u'半週', 3) ,(u'一週', 7), (u'半月', 15), (u'一月', 30), (u'二月', 60), (u'四月', 120), (u'六月', 180)]
+    kanjiScheduleIntervalsJapanese = [(u'半週', 3) ,(u'一週', 7), (u'半月', 15),
+                                      (u'一月', 30), (u'二月', 2 * 30), (u'四月', 4 * 30), (u'六月', 6 * 30)]
     # Keeping the labels only as comments, effectively
     kanjiScheduleStartDates = [('T', datetime.date(2019, 6, 15)),
                                ('W', datetime.date(2019, 6, 1)),
@@ -163,29 +163,33 @@ def drawLayout1BPPImage():
                                ('2M', datetime.date(2019, 5, 31)),
                                ('4M', datetime.date(2019, 5, 31)),
                                ('6M', datetime.date(2019, 5, 31))]
-    # Interval labels
-    for interval in kanjiScheduleIntervalsJapanese:
-        kanjiSchedule += u"{}  ".format(interval[0])
-    kanjiSchedule += "\n"
     # Interval countdowns
     # TODO These don't match up to my actual schedule quite right yet
-    # TODO Make red if below N days (N = 4?)
-    # TODO Make it draw according to width of labels, ubuntu for #s
     for i in range(len(kanjiScheduleIntervalsJapanese)):
-        date = kanjiScheduleStartDates[i]
-        kanjiSchedule += "{} ".format(str((kanjiScheduleIntervalsJapanese[i][1] - (timeNow - date[1]).days) % kanjiScheduleIntervalsJapanese[i][1]))
-    draw.multiline_text((layout.margins + headerLabelSize[0] + 5, layout.margins), kanjiSchedule, font = fontMicrohei, fill = Color_EPaper_Black)
+        label = kanjiScheduleIntervalsJapanese[i][0]
+        labelSize = draw.textsize(label, fontMicrohei)
+        labelWithSpaceSize = draw.textsize(label + u"  ", fontMicrohei) 
 
-    # Shuffle schedule
-    # TODO Only show days if it has any shuffling
-    kanjiShuffleSchedule = ''
-    kanjiShuffleLookaheadDays = 7
-    for futureDay in range(kanjiShuffleLookaheadDays):
-        timeDeltaDays = datetime.timedelta(days=futureDay)
-        timeFuture = timeNow + timeDeltaDays
-        kanjiShuffleSchedule += "{} ".format(timeFuture.strftime("%d"))
-    draw.multiline_text((layout.margins + headerLabelSize[0] + 200, layout.margins + 40), kanjiShuffleSchedule, font = fontUbuntuMono, fill = Color_EPaper_Black)    
-    
+        date = kanjiScheduleStartDates[i]
+        oneDayDelta = datetime.timedelta(days=-1);
+        countdownDays = ((kanjiScheduleIntervalsJapanese[i][1] -
+            (timeNow - date[1] + oneDayDelta).days) % kanjiScheduleIntervalsJapanese[i][1])
+        countdownDaysText = "{}".format(str(countdownDays))
+        # Star for shuffling
+        if countdownDays == 0:
+            countdownDaysText += "*"
+        countdownSize = draw.textsize(countdownDaysText, fontUbuntuMono)
+        
+        scheduleMargin = layout.margins + headerLabelSize[0] + 5
+        intervalOffset = labelWithSpaceSize[0] * i
+        countdownRightAlign = labelSize[0] - countdownSize[0]
+        countdownColor = Color_EPaper_Red if countdownDays <= 3 else Color_EPaper_Black
+        
+        draw.text((scheduleMargin + intervalOffset, layout.margins),
+                  label, font = fontMicrohei, fill = Color_EPaper_Black)
+        draw.text((scheduleMargin + intervalOffset + countdownRightAlign, layout.margins + labelSize[1]),
+                  countdownDaysText, font = fontUbuntuMono, fill = countdownColor, align = "right")
+            
     # Divider
     draw.line((layout.margins, layout.topHeader, epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins, layout.topHeader),
               fill = Color_EPaper_Black)
@@ -193,9 +197,9 @@ def drawLayout1BPPImage():
     #
     # Body
     #
-    draw.text((layout.margins, layout.topHeader), 'Agenda', font = fontUbuntuMono, fill = Color_EPaper_Black)
-    draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Red)
-    draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Red)
+    draw.text((layout.margins, layout.topHeader), 'Agenda', font = fontUbuntuMono, fill = Color_EPaper_Red)
+    draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Black)
+    draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Black)
     
     # draw.line((70, 50, 20, 100), fill = 0)
     # draw.rectangle((20, 50, 70, 100), outline = 0)
