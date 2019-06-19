@@ -4,6 +4,7 @@
 import datetime
 import json
 import os
+import orgparse
 
 # E-paper includes
 import epd7in5
@@ -117,7 +118,7 @@ def imageConvertMode1BPPToRGB(image):
 # Fonts
 # For Japanese
 fontMicrohei = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 24)
-fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 36)
+fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 38)
 # For English
 fontUbuntuMono = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 24)
 fontUbuntuMonoHuge = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 64)
@@ -126,6 +127,7 @@ class Layout:
     def __init__(self):
         self.margins = 10
         self.topHeader = 64
+        self.topHeaderRightMargin = 10
 
 def drawLayout1BPPImage():
     layout = Layout()
@@ -147,6 +149,7 @@ def drawLayout1BPPImage():
     # Header
     #
     headerLabel = u'日本語'
+    headerLabel = u'漢字'
     draw.text((layout.margins, layout.margins), headerLabel, font = fontMicroheiHuge, fill = Color_EPaper_Red)
     headerLabelSize = draw.textsize(headerLabel, font = fontMicroheiHuge)
 
@@ -176,13 +179,13 @@ def drawLayout1BPPImage():
             (timeNow - date[1] + oneDayDelta).days) % kanjiScheduleIntervalsJapanese[i][1])
         countdownDaysText = "{}".format(str(countdownDays))
         # Star for shuffling
-        if countdownDays == 0:
-            countdownDaysText += "*"
+        # if countdownDays == 0:
+            # countdownDaysText += "*"
         countdownSize = draw.textsize(countdownDaysText, fontUbuntuMono)
         
         scheduleMargin = layout.margins + headerLabelSize[0] + 5
         intervalOffset = labelWithSpaceSize[0] * i
-        countdownRightAlign = labelSize[0] - countdownSize[0]
+        countdownRightAlign = (labelSize[0] - countdownSize[0]) / 2
         countdownColor = Color_EPaper_Red if countdownDays <= 3 else Color_EPaper_Black
         
         draw.text((scheduleMargin + intervalOffset, layout.margins),
@@ -191,7 +194,8 @@ def drawLayout1BPPImage():
                   countdownDaysText, font = fontUbuntuMono, fill = countdownColor, align = "right")
             
     # Divider
-    draw.line((layout.margins, layout.topHeader, epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins, layout.topHeader),
+    draw.line((layout.margins, layout.topHeader,
+               epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins - layout.topHeaderRightMargin, layout.topHeader),
               fill = Color_EPaper_Black)
 
     #
@@ -230,6 +234,45 @@ if settings["dropbox_token"] and debugEnableAPIRequests:
     print("done.")
 else:
     print("No dropbox_token or debugEnableAPIRequests is true. Dropbox is disabled")
+
+def getAllOrgScheduledTasks_Recursive(root):
+    for node in root[1:]:
+        if node.scheduled and not node.closed and not node.todo == 'DONE':
+            print(node)
+        # TODO: Fix duplicate entries
+        if node.children:
+            getAllOrgScheduledTasks_Recursive(node.children)
+
+    return None
+    
+def getAgenda():
+    agendaStr = ""
+    
+    for orgAgendaFile in settings["dropbox_org_agenda_files"]:
+        outputFilename = settings["dropbox_output_dir"] + "/" + orgAgendaFile
+        # Dropbox sync
+        if settings["dropbox_token"] and debugEnableAPIRequests:
+            dbx = dropbox.Dropbox(settings["dropbox_token"])
+            print(dbx.users_get_current_account())
+            print("Downloading /{} to {}".format(orgAgendaFile, outputFilename))
+            outputPath = outputFilename[:outputFilename.rfind('/')]
+            if not os.path.exists(outputPath):
+                os.makedirs(outputPath)
+            dbx.files_download_to_file(outputFilename, "/" + orgAgendaFile)
+            # For all entries in org (don't need this because I have a limited set of agenda entries)
+            # for entry in dbx.files_list_folder(settings["dropbox_org_root"]).entries:
+            #     if type(entry) == dropbox.files.FolderMetadata:
+            #         print("Folder {}".format(entry.name))
+            #     else:
+            #         print("File {}".format(entry.name))
+        else:
+            agendaStr = "Dropbox disabled. Agenda might be out of sync"
+            
+        # Parse org file for any scheduled tasks
+        orgRoot = orgparse.load(outputFilename)
+        scheduledTasks = getAllOrgScheduledTasks_Recursive(orgRoot)
+
+    return agendaStr
     
 def main():
     if not debugEnableAPIRequests:
@@ -238,22 +281,21 @@ def main():
         print("Debug mode: no E-Paper actions will occur")
 
     print("--------------------------------------\n")
-        
-    if settings["dropbox_token"] and debugEnableAPIRequests:
-        dbx = dropbox.Dropbox(settings["dropbox_token"])
-        print(dbx.users_get_current_account())
 
+    agenda = getAgenda()
+    
     image = drawLayout1BPPImage()
-        
-    if debugEnableEPaperDisplay:
-        initializeEPaper()
-        imageDisplayOnEPaper(image)
 
     # Output image
     image = drawLayout1BPPImage()
     outputFilename = "output.png"
     imageConvertMode1BPPToRGB(image).save(outputFilename)
     print("Saved to {}".format(outputFilename))
+
+    # Output to e-Paper
+    if debugEnableEPaperDisplay:
+        initializeEPaper()
+        imageDisplayOnEPaper(image)
 
 if __name__ == '__main__':
     print("\nStarted Home Life Display\n")

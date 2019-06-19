@@ -65,6 +65,12 @@ Next,
 
 - [[https://dropbox.com/developers/apps][Get an access token]] (I needed full rights)
 - Add it to ~settings.json~ (~dropbox_token~)
+**** Org Parsing
+I use [[https://orgmode.org/][Org-mode]] for my Agenda:
+
+#+BEGIN_SRC sh
+sudo pip3 install orgparse
+#+END_SRC
 **** Fonts
 
 Download the [[https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip][Ubuntu Font Family]] (see [[https://design.ubuntu.com/font/][design page]] for more info on the font) and extract it:
