@@ -27,7 +27,7 @@ This section documents a general, minimal, and useful Pi setup.
 ~sudo raspi-config~
 
 - Enable SSH in *Interfacing Options*
-- Set localisation options (for me, it means checking ~en-US~)
+- Set localisation options (for me, it means checking ~en-US~ and setting timezone to Los Angeles)
 - Set Wifi hostname and password, if necessary
 
 *** Clone Repository
@@ -80,6 +80,11 @@ curl https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip > ubuntu-
 unzip ubuntu-font.zip
 #+END_SRC
 
+For Japanese:
+
+#+BEGIN_SRC sh
+sudo apt install ttf-wqy-microhei
+#+END_SRC
 *** E-paper Setup
 
 **** Python dependencies

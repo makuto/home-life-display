@@ -16,11 +16,11 @@ import traceback
 Debug settings to avoid overusing hardware/APIs
 """
 
-# debugEnableAPIRequests = True
-debugEnableAPIRequests = False
+debugEnableAPIRequests = True
+# debugEnableAPIRequests = False
 
-# debugEnableEPaperDisplay = True
-debugEnableEPaperDisplay = False
+debugEnableEPaperDisplay = True
+# debugEnableEPaperDisplay = False
 
 """
 Settings
@@ -120,7 +120,9 @@ def imageConvertMode1BPPToRGB(image):
 fontMicrohei = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 24)
 fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 38)
 # For English
+fontUbuntuMonoSmall = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 20)
 fontUbuntuMono = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 24)
+fontUbuntuMonoMedium = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 38)
 fontUbuntuMonoHuge = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 64)
 
 class Layout:
@@ -129,19 +131,42 @@ class Layout:
         self.topHeader = 64
         self.topHeaderRightMargin = 10
 
-def drawLayout1BPPImage():
+def drawLayout1BPPImage(agendaList):
     layout = Layout()
     
     # Clear the frame
     # 1 = 1 byte per pixel mode
     image = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
     draw = ImageDraw.Draw(image)
-    
+
+    #
     # Large date
+    #
+    # Circle background
     timeNow = datetime.date.today()
     dateString = timeNow.strftime("%b\n%d")
     # Right align by getting text size
     dateTextSize = draw.multiline_textsize(dateString, font = fontUbuntuMonoHuge)
+    circleOffset = (-23, 34)
+    # draw.arc((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
+    #           -dateTextSize[1] + circleOffset[1],
+    #           epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
+    #           dateTextSize[1] + circleOffset[1]),
+    #          0, 360,
+    #          fill = Color_EPaper_Black, width = 5)
+    
+    # Outer
+    draw.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
+                  -dateTextSize[1] + circleOffset[1],
+                  epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
+                  dateTextSize[1] + circleOffset[1]),
+                 fill = Color_EPaper_Black)
+    # Inner
+    draw.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0] - 5,
+                  -dateTextSize[1] + circleOffset[1] - 5,
+                  epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0] - 5,
+                  dateTextSize[1] + circleOffset[1] - 5),
+                 fill = Color_EPaper_White)
     draw.multiline_text((epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins, layout.margins), dateString,
                         font = fontUbuntuMonoHuge, fill = Color_EPaper_Red, align = "right")
 
@@ -174,23 +199,25 @@ def drawLayout1BPPImage():
         labelWithSpaceSize = draw.textsize(label + u"  ", fontMicrohei) 
 
         date = kanjiScheduleStartDates[i]
-        oneDayDelta = datetime.timedelta(days=-1);
         countdownDays = ((kanjiScheduleIntervalsJapanese[i][1] -
-            (timeNow - date[1] + oneDayDelta).days) % kanjiScheduleIntervalsJapanese[i][1])
+            (timeNow - date[1]).days) % kanjiScheduleIntervalsJapanese[i][1])
         countdownDaysText = "{}".format(str(countdownDays))
         # Star for shuffling
-        # if countdownDays == 0:
-            # countdownDaysText += "*"
+        if countdownDays == 0:
+            countdownDaysText = str(kanjiScheduleIntervalsJapanese[i][1])
+            countdownDaysText += "*"
+            
         countdownSize = draw.textsize(countdownDaysText, fontUbuntuMono)
         
         scheduleMargin = layout.margins + headerLabelSize[0] + 5
         intervalOffset = labelWithSpaceSize[0] * i
-        countdownRightAlign = (labelSize[0] - countdownSize[0]) / 2
+        countdownCenterAlign = (labelSize[0] - countdownSize[0]) / 2
+        # countdownRightAlign = (labelSize[0] - countdownSize[0])
         countdownColor = Color_EPaper_Red if countdownDays <= 3 else Color_EPaper_Black
         
         draw.text((scheduleMargin + intervalOffset, layout.margins),
                   label, font = fontMicrohei, fill = Color_EPaper_Black)
-        draw.text((scheduleMargin + intervalOffset + countdownRightAlign, layout.margins + labelSize[1]),
+        draw.text((scheduleMargin + intervalOffset + countdownCenterAlign, layout.margins + labelSize[1]),
                   countdownDaysText, font = fontUbuntuMono, fill = countdownColor, align = "right")
             
     # Divider
@@ -199,11 +226,56 @@ def drawLayout1BPPImage():
               fill = Color_EPaper_Black)
 
     #
-    # Body
+    # Agenda
     #
-    draw.text((layout.margins, layout.topHeader), 'Agenda', font = fontUbuntuMono, fill = Color_EPaper_Red)
-    draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Black)
-    draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Black)
+    agendaHeaderSize = draw.textsize('Agenda', font = fontUbuntuMonoMedium)
+    draw.text((layout.margins, layout.topHeader),
+              'Agenda',
+              font = fontUbuntuMonoMedium, fill = Color_EPaper_Red)
+    timeRangeSize = draw.textsize('(30 Days)', font = fontUbuntuMonoSmall)
+    draw.text((layout.margins + agendaHeaderSize[0], layout.topHeader + (agendaHeaderSize[1] - timeRangeSize[1]) - 4),
+               " (30 Days)",
+              font = fontUbuntuMonoSmall, fill = Color_EPaper_Black)
+
+    taskY = 0
+    if not settings["dropbox_token"] or not debugEnableAPIRequests:
+        draw.text((layout.margins, layout.topHeader + agendaHeaderSize[1]),
+                  "[Dropbox disabled. Agenda not up-to-date]",
+                  font = fontUbuntuMono, fill = Color_EPaper_Black)
+        taskY += 1
+    today = datetime.datetime.today()
+    # This is a hack because descenders are taller
+    taskMaxTextSize = draw.textsize("Ty", font = fontUbuntuMono)
+    lastTextSize = 0
+    for i in range(len(agendaList)):
+        taskStr = ""
+        dateTaskPair = agendaList[i]
+        daysFromToday = (dateTaskPair[0] - today).days
+        taskColor = Color_EPaper_Red if daysFromToday < 0 else Color_EPaper_Black
+        
+        # Stop at 30 days from now
+        if daysFromToday > 30:
+            break
+            
+        onSameDay = (i > 0
+                     and (dateTaskPair[0] - agendaList[i - 1][0]).days == 0
+                     and dateTaskPair[0].day == agendaList[i - 1][0].day)
+        if onSameDay:
+            # Continue the date
+            taskStr = '       {}'.format(dateTaskPair[1])
+        else:
+            taskStr = '{} {}'.format(dateTaskPair[0].strftime('%b %d'), dateTaskPair[1])
+
+        draw.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+                  taskStr,
+                  font = fontUbuntuMono, fill = taskColor)
+        
+        taskY += 1
+                
+    # draw.multiline_text((layout.margins, layout.topHeader + 20), agendaStr,
+                        # font = fontUbuntuMono, fill = Color_EPaper_Black)
+    # draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Black)
+    # draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Black)
     
     # draw.line((70, 50, 20, 100), fill = 0)
     # draw.rectangle((20, 50, 70, 100), outline = 0)
@@ -235,18 +307,25 @@ if settings["dropbox_token"] and debugEnableAPIRequests:
 else:
     print("No dropbox_token or debugEnableAPIRequests is true. Dropbox is disabled")
 
-def getAllOrgScheduledTasks_Recursive(root):
+def getAllOrgScheduledTasks_Recursive(root, tasks = None):
+    if not tasks:
+        # Use dictionary for uniqueness
+        tasks = {}
     for node in root[1:]:
         if node.scheduled and not node.closed and not node.todo == 'DONE':
-            print(node)
+            # print(node.__dict__)
+            # print(node.heading)
+            # print(node.scheduled)
+            tasks[node.heading] = node.scheduled
+            
         # TODO: Fix duplicate entries
         if node.children:
-            getAllOrgScheduledTasks_Recursive(node.children)
+            getAllOrgScheduledTasks_Recursive(node.children, tasks = tasks)
 
-    return None
+    return tasks
     
 def getAgenda():
-    agendaStr = ""
+    taskList = []
     
     for orgAgendaFile in settings["dropbox_org_agenda_files"]:
         outputFilename = settings["dropbox_output_dir"] + "/" + orgAgendaFile
@@ -265,14 +344,16 @@ def getAgenda():
             #         print("Folder {}".format(entry.name))
             #     else:
             #         print("File {}".format(entry.name))
-        else:
-            agendaStr = "Dropbox disabled. Agenda might be out of sync"
             
         # Parse org file for any scheduled tasks
         orgRoot = orgparse.load(outputFilename)
         scheduledTasks = getAllOrgScheduledTasks_Recursive(orgRoot)
 
-    return agendaStr
+        for task, date in scheduledTasks.items():
+            taskList.append((date.start, task))
+
+    sortedTaskList = sorted(taskList, key = lambda dateTaskPair: dateTaskPair[0])
+    return sortedTaskList
     
 def main():
     if not debugEnableAPIRequests:
@@ -282,12 +363,11 @@ def main():
 
     print("--------------------------------------\n")
 
-    agenda = getAgenda()
+    agendaList = getAgenda()
     
-    image = drawLayout1BPPImage()
-
+    image = drawLayout1BPPImage(agendaList)
+    
     # Output image
-    image = drawLayout1BPPImage()
     outputFilename = "output.png"
     imageConvertMode1BPPToRGB(image).save(outputFilename)
     print("Saved to {}".format(outputFilename))
