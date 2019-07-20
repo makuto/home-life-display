@@ -313,9 +313,6 @@ def getAllOrgScheduledTasks_Recursive(root, tasks = None):
         tasks = {}
     for node in root[1:]:
         if node.scheduled and not node.closed and not node.todo == 'DONE':
-            # print(node.__dict__)
-            # print(node.heading)
-            # print(node.scheduled)
             tasks[node.heading] = node.scheduled
             
         # TODO: Fix duplicate entries
@@ -323,16 +320,22 @@ def getAllOrgScheduledTasks_Recursive(root, tasks = None):
             getAllOrgScheduledTasks_Recursive(node.children, tasks = tasks)
 
     return tasks
-    
+
+# Convert dates to datetimes so they can be compared
+def convertDateDateTime(key):
+    if type(key) == datetime.date:
+        return datetime.datetime(key.year, key.month, key.day, 0, 0)
+    else:
+        return key
+
 def getAgenda():
     taskList = []
-    
+
     for orgAgendaFile in settings["dropbox_org_agenda_files"]:
         outputFilename = settings["dropbox_output_dir"] + "/" + orgAgendaFile
         # Dropbox sync
         if settings["dropbox_token"] and debugEnableAPIRequests:
             dbx = dropbox.Dropbox(settings["dropbox_token"])
-            print(dbx.users_get_current_account())
             print("Downloading /{} to {}".format(orgAgendaFile, outputFilename))
             outputPath = outputFilename[:outputFilename.rfind('/')]
             if not os.path.exists(outputPath):
@@ -344,17 +347,17 @@ def getAgenda():
             #         print("Folder {}".format(entry.name))
             #     else:
             #         print("File {}".format(entry.name))
-            
+
         # Parse org file for any scheduled tasks
         orgRoot = orgparse.load(outputFilename)
         scheduledTasks = getAllOrgScheduledTasks_Recursive(orgRoot)
 
         for task, date in scheduledTasks.items():
-            taskList.append((date.start, task))
+            taskList.append((convertDateDateTime(date.start), task))
 
-    sortedTaskList = sorted(taskList, key = lambda dateTaskPair: dateTaskPair[0])
+    sortedTaskList = sorted(taskList, key = lambda task: task[0])
     return sortedTaskList
-    
+
 def main():
     if not debugEnableAPIRequests:
         print("Debug mode: no API requests will occur")
@@ -364,9 +367,9 @@ def main():
     print("--------------------------------------\n")
 
     agendaList = getAgenda()
-    
+
     image = drawLayout1BPPImage(agendaList)
-    
+
     # Output image
     outputFilename = "output.png"
     imageConvertMode1BPPToRGB(image).save(outputFilename)
