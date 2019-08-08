@@ -1,7 +1,5 @@
 * Home Life Display
-[[file:output.png]]
-
-The above image shows the output to the E-paper display. /Work in progress./
+[[file:EInk.jpg]]
 
 Make a Raspberry Pi E-paper display show info in the morning/evening which I care about:
 - Org agenda
