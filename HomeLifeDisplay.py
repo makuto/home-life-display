@@ -16,8 +16,12 @@ import traceback
 Debug settings to avoid overusing hardware/APIs
 """
 
-debugEnableAPIRequests = True
-# debugEnableAPIRequests = False
+#debugEnableAPIRequests = True
+debugEnableAPIRequests = False
+
+# If the agenda files are synced some other way, don't print an error
+#  if Dropbox is disabled
+dropboxRequiredForAgendaSync = False
 
 debugEnableEPaperDisplay = True
 # debugEnableEPaperDisplay = False
@@ -238,11 +242,13 @@ def drawLayout1BPPImage(agendaList):
               font = fontUbuntuMonoSmall, fill = Color_EPaper_Black)
 
     taskY = 0
-    if not settings["dropbox_token"] or not debugEnableAPIRequests:
+
+    if dropboxRequiredForAgendaSync and (not settings["dropbox_token"] or not debugEnableAPIRequests):
         draw.text((layout.margins, layout.topHeader + agendaHeaderSize[1]),
                   "[Dropbox disabled. Agenda not up-to-date]",
                   font = fontUbuntuMono, fill = Color_EPaper_Black)
         taskY += 1
+
     today = datetime.datetime.today()
     # This is a hack because descenders are taller
     taskMaxTextSize = draw.textsize("Ty", font = fontUbuntuMono)
