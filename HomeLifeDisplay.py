@@ -266,9 +266,15 @@ def drawLayout1BPPImage(agendaList):
         onSameDay = (i > 0
                      and (dateTaskPair[0] - agendaList[i - 1][0]).days == 0
                      and dateTaskPair[0].day == agendaList[i - 1][0].day)
+        inSameMonth = (i > 0
+                       and dateTaskPair[0].month == agendaList[i - 1][0].month)
+                
         if onSameDay:
             # Continue the date
             taskStr = '       {}'.format(dateTaskPair[1])
+        elif inSameMonth:
+            # Leave off the month string
+            taskStr = '    {} {}'.format(dateTaskPair[0].strftime('%d'), dateTaskPair[1])
         else:
             taskStr = '{} {}'.format(dateTaskPair[0].strftime('%b %d'), dateTaskPair[1])
 
@@ -319,7 +325,8 @@ def getAllOrgScheduledTasks_Recursive(root, tasks = None):
         tasks = {}
     for node in root[1:]:
         if node.scheduled and not node.closed and not node.todo == 'DONE':
-            tasks[node.heading] = node.scheduled
+            # Key with the heading and date to not conflict with same-name tasks on different days
+            tasks[node.heading + str(node.scheduled)] = (node.heading, node.scheduled)
             
         # TODO: Fix duplicate entries
         if node.children:
@@ -358,8 +365,8 @@ def getAgenda():
         orgRoot = orgparse.load(outputFilename)
         scheduledTasks = getAllOrgScheduledTasks_Recursive(orgRoot)
 
-        for task, date in scheduledTasks.items():
-            taskList.append((convertDateDateTime(date.start), task))
+        for taskKey, taskDatePair in scheduledTasks.items():
+            taskList.append((convertDateDateTime(taskDatePair[1].start), taskDatePair[0]))
 
     sortedTaskList = sorted(taskList, key = lambda task: task[0])
     return sortedTaskList
