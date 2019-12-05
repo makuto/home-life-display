@@ -23,8 +23,8 @@ debugEnableAPIRequests = False
 #  if Dropbox is disabled
 dropboxRequiredForAgendaSync = False
 
-# debugEnableEPaperDisplay = True
-debugEnableEPaperDisplay = False
+debugEnableEPaperDisplay = True
+# debugEnableEPaperDisplay = False
 
 """
 Settings
