@@ -23,8 +23,8 @@ debugEnableAPIRequests = False
 #  if Dropbox is disabled
 dropboxRequiredForAgendaSync = False
 
-debugEnableEPaperDisplay = True
-# debugEnableEPaperDisplay = False
+# debugEnableEPaperDisplay = True
+debugEnableEPaperDisplay = False
 
 """
 Settings
@@ -121,13 +121,16 @@ def imageConvertMode1BPPToRGB(image):
 
 # Fonts
 # For Japanese
-fontMicrohei = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 24)
-fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 38)
+fontJapanese = ImageFont.truetype('/usr/share/fonts/truetype/fonts-japanese-gothic.ttf', 24)
+fontJapaneseHuge = ImageFont.truetype('/usr/share/fonts/truetype/fonts-japanese-gothic.ttf', 44)
 # For English
 fontUbuntuMonoSmall = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 20)
 fontUbuntuMono = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 24)
 fontUbuntuMonoMedium = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 38)
 fontUbuntuMonoHuge = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 64)
+# These are actually chinese fonts, that will support Japanese with some (confusing) variations
+# fontMicrohei = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 24)
+# fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 38)
 
 class Layout:
     def __init__(self):
@@ -151,7 +154,8 @@ def drawLayout1BPPImage(agendaList):
     dateString = timeNow.strftime("%b\n%d")
     # Right align by getting text size
     dateTextSize = draw.multiline_textsize(dateString, font = fontUbuntuMonoHuge)
-    circleOffset = (-23, 34)
+    dateTextHorizontalOffset = layout.topHeader - 15
+    circleOffset = (-23, 34 + dateTextHorizontalOffset)
     # draw.arc((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
     #           -dateTextSize[1] + circleOffset[1],
     #           epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
@@ -171,7 +175,9 @@ def drawLayout1BPPImage(agendaList):
                   epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0] - 5,
                   dateTextSize[1] + circleOffset[1] - 5),
                  fill = Color_EPaper_White)
-    draw.multiline_text((epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins, layout.margins), dateString,
+    draw.multiline_text((epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins,
+                         layout.margins + dateTextHorizontalOffset),
+                        dateString,
                         font = fontUbuntuMonoHuge, fill = Color_EPaper_Red, align = "right")
 
     #
@@ -179,14 +185,14 @@ def drawLayout1BPPImage(agendaList):
     #
     headerLabel = u'日本語'
     headerLabel = u'漢字'
-    draw.text((layout.margins, layout.margins), headerLabel, font = fontMicroheiHuge, fill = Color_EPaper_Red)
-    headerLabelSize = draw.textsize(headerLabel, font = fontMicroheiHuge)
+    draw.text((layout.margins, layout.margins), headerLabel, font = fontJapaneseHuge, fill = Color_EPaper_Red)
+    headerLabelSize = draw.textsize(headerLabel, font = fontJapaneseHuge)
 
     # Study review schedule
     # Interval:days
     # kanjiScheduleIntervals = [('T', 3), ('W', 7), ('BM', 15), ('M', 30), ('2M', 60), ('4M', 120), ('6M', 180)]
     kanjiScheduleIntervalsJapanese = [(u'半週', 3) ,(u'一週', 7), (u'半月', 15),
-                                      (u'一月', 30), (u'二月', 2 * 30), (u'四月', 4 * 30), (u'六月', 6 * 30)]
+                                      (u'一月', 30), (u'二月', 2 * 30), (u'四月', 4 * 30), (u'六月', 6 * 30), (u'十月', 10 * 30)]
     # Keeping the labels only as comments, effectively
     kanjiScheduleStartDates = [('T', datetime.date(2019, 6, 15)),
                                ('W', datetime.date(2019, 6, 1)),
@@ -194,13 +200,14 @@ def drawLayout1BPPImage(agendaList):
                                ('M', datetime.date(2019, 6, 1)),
                                ('2M', datetime.date(2019, 5, 31)),
                                ('4M', datetime.date(2019, 5, 31)),
-                               ('6M', datetime.date(2019, 5, 31))]
+                               ('6M', datetime.date(2019, 5, 31)),
+                               ('10M', datetime.date(2019, 11, 24))]
     # Interval countdowns
     # TODO These don't match up to my actual schedule quite right yet
     for i in range(len(kanjiScheduleIntervalsJapanese)):
         label = kanjiScheduleIntervalsJapanese[i][0]
-        labelSize = draw.textsize(label, fontMicrohei)
-        labelWithSpaceSize = draw.textsize(label + u"  ", fontMicrohei) 
+        labelSize = draw.textsize(label, fontJapanese)
+        labelWithSpaceSize = draw.textsize(label + u"   ", fontJapanese) 
 
         date = kanjiScheduleStartDates[i]
         countdownDays = ((kanjiScheduleIntervalsJapanese[i][1] -
@@ -220,13 +227,13 @@ def drawLayout1BPPImage(agendaList):
         countdownColor = Color_EPaper_Red if countdownDays <= 3 else Color_EPaper_Black
         
         draw.text((scheduleMargin + intervalOffset, layout.margins),
-                  label, font = fontMicrohei, fill = Color_EPaper_Black)
+                  label, font = fontJapanese, fill = Color_EPaper_Black)
         draw.text((scheduleMargin + intervalOffset + countdownCenterAlign, layout.margins + labelSize[1]),
                   countdownDaysText, font = fontUbuntuMono, fill = countdownColor, align = "right")
             
     # Divider
     draw.line((layout.margins, layout.topHeader,
-               epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins - layout.topHeaderRightMargin, layout.topHeader),
+               epd7in5.EPD_WIDTH - layout.margins, layout.topHeader),
               fill = Color_EPaper_Black)
 
     #
@@ -287,7 +294,7 @@ def drawLayout1BPPImage(agendaList):
     # draw.multiline_text((layout.margins, layout.topHeader + 20), agendaStr,
                         # font = fontUbuntuMono, fill = Color_EPaper_Black)
     # draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Black)
-    # draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontMicrohei, fill = Color_EPaper_Black)
+    # draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontJapanese, fill = Color_EPaper_Black)
     
     # draw.line((70, 50, 20, 100), fill = 0)
     # draw.rectangle((20, 50, 70, 100), outline = 0)
