@@ -8,9 +8,6 @@ Make a Raspberry Pi E-paper display show info in the morning/evening which I car
 
 The E-paper panel is a [[https://www.waveshare.com/product/7.5inch-e-paper-hat-b.htm][Waveshare E-Ink three-color 7.5 inch panel with HAT]].
 
-Updated output:
-[[file:output.png]]
-
 ** Setup
 
 More for my own reference than anyone else, which is why there are some obvious general setup steps specific to Pi, not this project.
