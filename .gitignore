@@ -107,3 +107,6 @@ venv.bak/
 LOCAL_*
 
 output.png
+
+service_cron_status.txt
+agenda/
