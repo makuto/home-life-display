@@ -34,21 +34,21 @@ settings = None
 
 def loadSettings():
     global settings
-    
+
     settingsFilename = "settings.json"
     # Load git ignored settings, if it exists (so I don't check in my API tokens)
     if os.path.isfile("LOCAL_settings.json"):
         settingsFilename = "LOCAL_settings.json"
-        
+
     print("Loading settings from {}".format(settingsFilename))
-        
+
     settingsFile = open(settingsFilename, "r")
     settingsLines = settingsFile.readlines()
     settingsFile.close()
 
     settings = json.loads("".join(settingsLines))
     print(settings)
-    
+
 loadSettings()
 
 """
@@ -62,10 +62,10 @@ epaperDisplay = None
 # Clear the e-paper
 def initializeEPaper():
     global epaperDisplay
-    
+
     if not debugEnableEPaperDisplay:
         return
-    
+
     try:
         epaperDisplay = epd7in5.EPD()
         epaperDisplay.init()
@@ -79,7 +79,7 @@ def initializeEPaper():
         exit()
 
     print("E-paper initialized")
-        
+
 def sleepEPaper():
     if epaperDisplay:
         try:
@@ -140,7 +140,7 @@ class Layout:
 
 def drawLayout1BPPImage(agendaList):
     layout = Layout()
-    
+
     # Clear the frame
     # 1 = 1 byte per pixel mode
     image = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
@@ -162,7 +162,7 @@ def drawLayout1BPPImage(agendaList):
     #           dateTextSize[1] + circleOffset[1]),
     #          0, 360,
     #          fill = Color_EPaper_Black, width = 5)
-    
+
     # Outer
     draw.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
                   -dateTextSize[1] + circleOffset[1],
@@ -191,23 +191,28 @@ def drawLayout1BPPImage(agendaList):
     # Study review schedule
     # Interval:days
     # kanjiScheduleIntervals = [('T', 3), ('W', 7), ('BM', 15), ('M', 30), ('2M', 60), ('4M', 120), ('6M', 180)]
-    kanjiScheduleIntervalsJapanese = [(u'半週', 3) ,(u'一週', 7), (u'半月', 15),
-                                      (u'一月', 30), (u'二月', 2 * 30), (u'四月', 4 * 30), (u'六月', 6 * 30), (u'十月', 10 * 30)]
+    # kanjiScheduleIntervalsJapanese = [(u'半週', 3) ,(u'一週', 7), (u'半月', 15),
+    #                                   (u'一月', 30), (u'二月', 2 * 30), (u'四月', 4 * 30), (u'六月', 6 * 30), (u'十月', 10 * 30)]
+    kanjiScheduleIntervalsJapanese = [(u'半月', 15), (u'一月', 30), (u'二月', 2 * 30), (u'四月', 4 * 30),
+                                      (u'六月', 6 * 30), (u'十月', 10 * 30), (u'長年', 18 * 30)]
+
     # Keeping the labels only as comments, effectively
-    kanjiScheduleStartDates = [('T', datetime.date(2019, 6, 15)),
-                               ('W', datetime.date(2019, 6, 1)),
-                               ('BM', datetime.date(2019, 6, 15)),
-                               ('M', datetime.date(2019, 6, 1)),
-                               ('2M', datetime.date(2019, 5, 31)),
-                               ('4M', datetime.date(2019, 5, 31)),
-                               ('6M', datetime.date(2019, 5, 31)),
-                               ('10M', datetime.date(2019, 11, 24))]
+    kanjiScheduleStartDates = [
+        # ('T', datetime.date(2019, 6, 15)),
+        # ('W', datetime.date(2019, 6, 1)),
+        ('BM', datetime.date(2019, 6, 15)),
+        ('M', datetime.date(2019, 6, 1)),
+        ('2M', datetime.date(2019, 5, 31)),
+        ('4M', datetime.date(2019, 5, 31)),
+        ('6M', datetime.date(2019, 5, 31)),
+        ('10M', datetime.date(2019, 11, 24)),
+        ('1.5Y', datetime.date(2020, 9, 22))]
     # Interval countdowns
     # TODO These don't match up to my actual schedule quite right yet
     for i in range(len(kanjiScheduleIntervalsJapanese)):
         label = kanjiScheduleIntervalsJapanese[i][0]
         labelSize = draw.textsize(label, fontJapanese)
-        labelWithSpaceSize = draw.textsize(label + u"   ", fontJapanese) 
+        labelWithSpaceSize = draw.textsize(label + u"     ", fontJapanese)
 
         date = kanjiScheduleStartDates[i]
         countdownDays = ((kanjiScheduleIntervalsJapanese[i][1] -
@@ -217,20 +222,20 @@ def drawLayout1BPPImage(agendaList):
         if countdownDays == 0:
             countdownDaysText = str(kanjiScheduleIntervalsJapanese[i][1])
             countdownDaysText += "*"
-            
+
         countdownSize = draw.textsize(countdownDaysText, fontUbuntuMono)
-        
+
         scheduleMargin = layout.margins + headerLabelSize[0] + 5
         intervalOffset = labelWithSpaceSize[0] * i
         countdownCenterAlign = (labelSize[0] - countdownSize[0]) / 2
         # countdownRightAlign = (labelSize[0] - countdownSize[0])
         countdownColor = Color_EPaper_Red if countdownDays <= 3 else Color_EPaper_Black
-        
+
         draw.text((scheduleMargin + intervalOffset, layout.margins),
                   label, font = fontJapanese, fill = Color_EPaper_Black)
         draw.text((scheduleMargin + intervalOffset + countdownCenterAlign, layout.margins + labelSize[1]),
                   countdownDaysText, font = fontUbuntuMono, fill = countdownColor, align = "right")
-            
+
     # Divider
     draw.line((layout.margins, layout.topHeader,
                epd7in5.EPD_WIDTH - layout.margins, layout.topHeader),
@@ -265,17 +270,17 @@ def drawLayout1BPPImage(agendaList):
         dateTaskPair = agendaList[i]
         daysFromToday = (dateTaskPair[0] - today).days
         taskColor = Color_EPaper_Red if daysFromToday < 0 else Color_EPaper_Black
-        
+
         # Stop at 30 days from now
         if daysFromToday > 30:
             break
-            
+
         onSameDay = (i > 0
                      and (dateTaskPair[0] - agendaList[i - 1][0]).days == 0
                      and dateTaskPair[0].day == agendaList[i - 1][0].day)
         inSameMonth = (i > 0
                        and dateTaskPair[0].month == agendaList[i - 1][0].month)
-                
+
         if onSameDay:
             # Continue the date
             taskStr = '       {}'.format(dateTaskPair[1])
@@ -288,14 +293,14 @@ def drawLayout1BPPImage(agendaList):
         draw.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
                   taskStr,
                   font = fontUbuntuMono, fill = taskColor)
-        
+
         taskY += 1
-                
+
     # draw.multiline_text((layout.margins, layout.topHeader + 20), agendaStr,
                         # font = fontUbuntuMono, fill = Color_EPaper_Black)
     # draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Black)
     # draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontJapanese, fill = Color_EPaper_Black)
-    
+
     # draw.line((70, 50, 20, 100), fill = 0)
     # draw.rectangle((20, 50, 70, 100), outline = 0)
     # draw.line((165, 50, 165, 100), fill = 0)
@@ -303,7 +308,7 @@ def drawLayout1BPPImage(agendaList):
     # draw.arc((140, 50, 190, 100), 0, 360, fill = 0)
     # draw.rectangle((80, 50, 130, 100), fill = 0)
     # draw.chord((200, 50, 250, 100), 0, 360, fill = 0)
-    
+
     return image
 
 def imageDisplayOnEPaper(image):
@@ -334,7 +339,7 @@ def getAllOrgScheduledTasks_Recursive(root, tasks = None):
         if node.scheduled and not node.closed and not node.todo == 'DONE':
             # Key with the heading and date to not conflict with same-name tasks on different days
             tasks[node.heading + str(node.scheduled)] = (node.heading, node.scheduled)
-            
+
         # TODO: Fix duplicate entries
         if node.children:
             getAllOrgScheduledTasks_Recursive(node.children, tasks = tasks)
