@@ -70,7 +70,7 @@ def initializeEPaper():
         epaperDisplay = epd7in5.EPD()
         epaperDisplay.init()
         print("E-Paper: Clear")
-        epaperDisplay.Clear(0xFF)
+        epaperDisplay.Clear()
 
         # If you sleep here, it won't respond to commands
         # epaperDisplay.sleep()
@@ -94,28 +94,36 @@ Main
 # Black < 64
 Color_EPaper_Black = 0
 # 64 < Red < 192
-Color_EPaper_Red = 180
+Color_EPaper_Red = 1
 # 192 < White
 Color_EPaper_White = 255
 
-# Colors for non-Epaper display
-Color_RGB_Black = (0, 0, 0)
-Color_RGB_Red = (255, 0, 0)
-Color_RGB_White = (255, 255, 255)
-
-convertEPaperColorToRGB = {
-    Color_EPaper_Black:Color_RGB_Black,
-    Color_EPaper_Red:Color_RGB_Red,
-    Color_EPaper_White:Color_RGB_White}
+# They changed the API to take two images instead, where even red is 0
+def colorToFill(color):
+    if color == Color_EPaper_Black:
+        return 0
+    elif color == Color_EPaper_Red:
+        return 0
+    elif color == Color_EPaper_White:
+        return 255
+    return 0
 
 # Useful for testing without wearing out the display
-def imageConvertMode1BPPToRGB(image):
+def imageConvertMode1BPPToRGB(image, isZeroRed = False):
+    # Colors for non-Epaper display
+    Color_RGB_Black = (0, 0, 0)
+    Color_RGB_Red = (255, 0, 0)
+    Color_RGB_White = (255, 255, 255)
+
     convertedImage = Image.new("RGB", (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_RGB_White)
     convertedData = []
     for y in range(image.height):
         for x in range(image.width):
             value = image.getpixel((x, y))
-            convertedData.append(convertEPaperColorToRGB[value])
+            if value == 0:
+                convertedData.append(Color_RGB_Red if isZeroRed else Color_RGB_Black)
+            else:
+                convertedData.append(Color_RGB_White)
     convertedImage.putdata(convertedData)
     return convertedImage
 
@@ -143,8 +151,10 @@ def drawLayout1BPPImage(agendaList):
 
     # Clear the frame
     # 1 = 1 byte per pixel mode
-    image = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
-    draw = ImageDraw.Draw(image)
+    imageBlack = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
+    imageRed = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
+    drawBlack = ImageDraw.Draw(imageBlack)
+    drawRed = ImageDraw.Draw(imageRed)
 
     #
     # Large date
@@ -153,10 +163,10 @@ def drawLayout1BPPImage(agendaList):
     timeNow = datetime.date.today()
     dateString = timeNow.strftime("%b\n%d")
     # Right align by getting text size
-    dateTextSize = draw.multiline_textsize(dateString, font = fontUbuntuMonoHuge)
+    dateTextSize = drawBlack.multiline_textsize(dateString, font = fontUbuntuMonoHuge)
     dateTextHorizontalOffset = layout.topHeader - 15
     circleOffset = (-23, 34 + dateTextHorizontalOffset)
-    # draw.arc((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
+    # drawBlack.arc((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
     #           -dateTextSize[1] + circleOffset[1],
     #           epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
     #           dateTextSize[1] + circleOffset[1]),
@@ -164,29 +174,30 @@ def drawLayout1BPPImage(agendaList):
     #          fill = Color_EPaper_Black, width = 5)
 
     # Outer
-    draw.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
-                  -dateTextSize[1] + circleOffset[1],
-                  epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
-                  dateTextSize[1] + circleOffset[1]),
-                 fill = Color_EPaper_Black)
+    drawBlack.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
+                       -dateTextSize[1] + circleOffset[1],
+                       epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
+                       dateTextSize[1] + circleOffset[1]),
+                      fill = Color_EPaper_Black)
     # Inner
-    draw.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0] - 5,
-                  -dateTextSize[1] + circleOffset[1] - 5,
-                  epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0] - 5,
-                  dateTextSize[1] + circleOffset[1] - 5),
-                 fill = Color_EPaper_White)
-    draw.multiline_text((epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins,
-                         layout.margins + dateTextHorizontalOffset),
-                        dateString,
-                        font = fontUbuntuMonoHuge, fill = Color_EPaper_Red, align = "right")
+    drawBlack.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0] - 5,
+                       -dateTextSize[1] + circleOffset[1] - 5,
+                       epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0] - 5,
+                       dateTextSize[1] + circleOffset[1] - 5),
+                      fill = Color_EPaper_White)
+    drawRed.multiline_text((epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins,
+                            layout.margins + dateTextHorizontalOffset),
+                           dateString,
+                           font = fontUbuntuMonoHuge, fill = colorToFill(Color_EPaper_Red), align = "right")
 
     #
     # Header
     #
     headerLabel = u'日本語'
     headerLabel = u'漢字'
-    draw.text((layout.margins, layout.margins), headerLabel, font = fontJapaneseHuge, fill = Color_EPaper_Red)
-    headerLabelSize = draw.textsize(headerLabel, font = fontJapaneseHuge)
+    drawRed.text((layout.margins, layout.margins), headerLabel, font = fontJapaneseHuge,
+                 fill = colorToFill(Color_EPaper_Red))
+    headerLabelSize = drawBlack.textsize(headerLabel, font = fontJapaneseHuge)
 
     # Study review schedule
     # Interval:days
@@ -211,19 +222,19 @@ def drawLayout1BPPImage(agendaList):
     # TODO These don't match up to my actual schedule quite right yet
     for i in range(len(kanjiScheduleIntervalsJapanese)):
         label = kanjiScheduleIntervalsJapanese[i][0]
-        labelSize = draw.textsize(label, fontJapanese)
-        labelWithSpaceSize = draw.textsize(label + u"     ", fontJapanese)
+        labelSize = drawBlack.textsize(label, fontJapanese)
+        labelWithSpaceSize = drawBlack.textsize(label + u"     ", fontJapanese)
 
         date = kanjiScheduleStartDates[i]
         countdownDays = ((kanjiScheduleIntervalsJapanese[i][1] -
-            (timeNow - date[1]).days) % kanjiScheduleIntervalsJapanese[i][1])
+                          (timeNow - date[1]).days) % kanjiScheduleIntervalsJapanese[i][1])
         countdownDaysText = "{}".format(str(countdownDays))
         # Star for shuffling
         if countdownDays == 0:
             countdownDaysText = str(kanjiScheduleIntervalsJapanese[i][1])
             countdownDaysText += "*"
 
-        countdownSize = draw.textsize(countdownDaysText, fontUbuntuMono)
+        countdownSize = drawBlack.textsize(countdownDaysText, fontUbuntuMono)
 
         scheduleMargin = layout.margins + headerLabelSize[0] + 5
         intervalOffset = labelWithSpaceSize[0] * i
@@ -231,39 +242,43 @@ def drawLayout1BPPImage(agendaList):
         # countdownRightAlign = (labelSize[0] - countdownSize[0])
         countdownColor = Color_EPaper_Red if countdownDays <= 3 else Color_EPaper_Black
 
-        draw.text((scheduleMargin + intervalOffset, layout.margins),
-                  label, font = fontJapanese, fill = Color_EPaper_Black)
-        draw.text((scheduleMargin + intervalOffset + countdownCenterAlign, layout.margins + labelSize[1]),
-                  countdownDaysText, font = fontUbuntuMono, fill = countdownColor, align = "right")
+        drawBlack.text((scheduleMargin + intervalOffset, layout.margins),
+                       label, font = fontJapanese, fill = colorToFill(Color_EPaper_Black))
+        if countdownColor == Color_EPaper_Red:
+            drawRed.text((scheduleMargin + intervalOffset + countdownCenterAlign, layout.margins + labelSize[1]),
+                         countdownDaysText, font = fontUbuntuMono, fill = colorToFill(countdownColor), align = "right")
+        else:
+            drawBlack.text((scheduleMargin + intervalOffset + countdownCenterAlign, layout.margins + labelSize[1]),
+                           countdownDaysText, font = fontUbuntuMono, fill = colorToFill(countdownColor), align = "right")
 
     # Divider
-    draw.line((layout.margins, layout.topHeader,
-               epd7in5.EPD_WIDTH - layout.margins, layout.topHeader),
-              fill = Color_EPaper_Black)
+    drawBlack.line((layout.margins, layout.topHeader,
+                    epd7in5.EPD_WIDTH - layout.margins, layout.topHeader),
+                   fill = colorToFill(Color_EPaper_Black))
 
     #
     # Agenda
     #
-    agendaHeaderSize = draw.textsize('Agenda', font = fontUbuntuMonoMedium)
-    draw.text((layout.margins, layout.topHeader),
-              'Agenda',
-              font = fontUbuntuMonoMedium, fill = Color_EPaper_Red)
-    timeRangeSize = draw.textsize('(30 Days)', font = fontUbuntuMonoSmall)
-    draw.text((layout.margins + agendaHeaderSize[0], layout.topHeader + (agendaHeaderSize[1] - timeRangeSize[1]) - 4),
-               " (30 Days)",
-              font = fontUbuntuMonoSmall, fill = Color_EPaper_Black)
+    agendaHeaderSize = drawBlack.textsize('Agenda', font = fontUbuntuMonoMedium)
+    drawRed.text((layout.margins, layout.topHeader),
+                 'Agenda',
+                 font = fontUbuntuMonoMedium, fill = colorToFill(Color_EPaper_Red))
+    timeRangeSize = drawBlack.textsize('(30 Days)', font = fontUbuntuMonoSmall)
+    drawBlack.text((layout.margins + agendaHeaderSize[0], layout.topHeader + (agendaHeaderSize[1] - timeRangeSize[1]) - 4),
+                   " (30 Days)",
+                   font = fontUbuntuMonoSmall, fill = colorToFill(Color_EPaper_Black))
 
     taskY = 0
 
     if dropboxRequiredForAgendaSync and (not settings["dropbox_token"] or not debugEnableAPIRequests):
-        draw.text((layout.margins, layout.topHeader + agendaHeaderSize[1]),
-                  "[Dropbox disabled. Agenda not up-to-date]",
-                  font = fontUbuntuMono, fill = Color_EPaper_Black)
+        drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1]),
+                       "[Dropbox disabled. Agenda not up-to-date]",
+                       font = fontUbuntuMono, fill = colorToFill(Color_EPaper_Black))
         taskY += 1
 
     today = datetime.datetime.today()
     # This is a hack because descenders are taller
-    taskMaxTextSize = draw.textsize("Ty", font = fontUbuntuMono)
+    taskMaxTextSize = drawBlack.textsize("Ty", font = fontUbuntuMono)
     lastTextSize = 0
     for i in range(len(agendaList)):
         taskStr = ""
@@ -290,14 +305,19 @@ def drawLayout1BPPImage(agendaList):
         else:
             taskStr = '{} {}'.format(dateTaskPair[0].strftime('%b %d'), dateTaskPair[1])
 
-        draw.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
-                  taskStr,
-                  font = fontUbuntuMono, fill = taskColor)
+        if taskColor == Color_EPaper_Red:
+            drawRed.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+                         taskStr,
+                         font = fontUbuntuMono, fill = colorToFill(taskColor))
+        else:
+            drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+                           taskStr,
+                           font = fontUbuntuMono, fill = colorToFill(taskColor))
 
         taskY += 1
 
     # draw.multiline_text((layout.margins, layout.topHeader + 20), agendaStr,
-                        # font = fontUbuntuMono, fill = Color_EPaper_Black)
+    # font = fontUbuntuMono, fill = Color_EPaper_Black)
     # draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Black)
     # draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontJapanese, fill = Color_EPaper_Black)
 
@@ -309,16 +329,16 @@ def drawLayout1BPPImage(agendaList):
     # draw.rectangle((80, 50, 130, 100), fill = 0)
     # draw.chord((200, 50, 250, 100), 0, 360, fill = 0)
 
-    return image
+    return (imageBlack, imageRed)
 
-def imageDisplayOnEPaper(image):
+def imageDisplayOnEPaper(imageBlack, imageRed):
     if not epaperDisplay:
         print("No epaper display!")
         return
 
     print("Home Life Display drawing...")
 
-    epaperDisplay.display(epaperDisplay.getbuffer(image))
+    epaperDisplay.display(epaperDisplay.getbuffer(imageBlack), epaperDisplay.getbuffer(imageRed))
     time.sleep(2)
     epaperDisplay.sleep()
 
@@ -365,13 +385,13 @@ def getAgenda():
             outputPath = outputFilename[:outputFilename.rfind('/')]
             if not os.path.exists(outputPath):
                 os.makedirs(outputPath)
-            dbx.files_download_to_file(outputFilename, "/" + orgAgendaFile)
-            # For all entries in org (don't need this because I have a limited set of agenda entries)
-            # for entry in dbx.files_list_folder(settings["dropbox_org_root"]).entries:
-            #     if type(entry) == dropbox.files.FolderMetadata:
-            #         print("Folder {}".format(entry.name))
-            #     else:
-            #         print("File {}".format(entry.name))
+                dbx.files_download_to_file(outputFilename, "/" + orgAgendaFile)
+                # For all entries in org (don't need this because I have a limited set of agenda entries)
+                # for entry in dbx.files_list_folder(settings["dropbox_org_root"]).entries:
+                #     if type(entry) == dropbox.files.FolderMetadata:
+                #         print("Folder {}".format(entry.name))
+                #     else:
+                #         print("File {}".format(entry.name))
 
         # Parse org file for any scheduled tasks
         orgRoot = orgparse.load(outputFilename)
@@ -391,19 +411,23 @@ def main():
 
     print("--------------------------------------\n")
 
+    print("Getting agenda")
     agendaList = getAgenda()
 
-    image = drawLayout1BPPImage(agendaList)
+    print("Drawing image")
+    images = drawLayout1BPPImage(agendaList)
 
     # Output image
-    outputFilename = "output.png"
-    imageConvertMode1BPPToRGB(image).save(outputFilename)
-    print("Saved to {}".format(outputFilename))
+    print("Output images")
+    imageConvertMode1BPPToRGB(images[0]).save("outputBlack.png", isZeroRed = False)
+    imageConvertMode1BPPToRGB(images[1]).save("outputRed.png", isZeroRed = True)
+    print("Saved to {}".format("output[Black|red].png"))
 
     # Output to e-Paper
     if debugEnableEPaperDisplay:
+        print("Output images to E-paper")
         initializeEPaper()
-        imageDisplayOnEPaper(image)
+        imageDisplayOnEPaper(images[0], images[1])
 
 if __name__ == '__main__':
     print("\nStarted Home Life Display\n")

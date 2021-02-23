@@ -106,7 +106,7 @@ venv.bak/
 # Macoy's ignore
 LOCAL_*
 
-output.png
+output*.png
 
 service_cron_status.txt
 agenda/

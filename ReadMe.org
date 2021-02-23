@@ -99,10 +99,14 @@ There was no ~setup.py~ nor ~init.py~ for the e-Paper API, so just symlink them 
 
 #+BEGIN_SRC sh
 cd home-life-display
-ln -s e-Paper/7.5inch_e-paper_code/RaspberryPi/python3/epd7in5.py epd7in5.py
-ln -s e-Paper/7.5inch_e-paper_code/RaspberryPi/python3/epdconfig.py epdconfig.py
+ln -s e-Paper/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd7in5bc.py epd7in5.py
+ln -s e-Paper/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epdconfig.py epdconfig.py
 #+END_SRC
 
+If you get failure to import, open the ~epd7in5.py~ and fix it like so:
+#+BEGIN_SRC python
+import epdconfig
+#+END_SRC
 **** Enable SPI interface
 
 #+BEGIN_SRC sh
