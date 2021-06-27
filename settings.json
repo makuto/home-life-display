@@ -1,5 +1,3 @@
 {
-	"dropbox_token": "",
-	"dropbox_org_agenda_files": [],
-	"dropbox_output_dir": "agenda"
+	"org_agenda_files": ["/home/macoy/Org-Sync/0_Dump.org", "/home/macoy/Org-Sync/1_Calendar.org", "/home/macoy/Org-Sync/Auri.org"]
 }

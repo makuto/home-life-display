@@ -17,10 +17,6 @@ Debug settings to avoid overusing hardware/APIs
 #debugEnableAPIRequests = True
 debugEnableAPIRequests = False
 
-# If the agenda files are synced some other way, don't print an error
-#  if Dropbox is disabled
-dropboxRequiredForAgendaSync = False
-
 #debugEnableEPaperDisplay = True
 debugEnableEPaperDisplay = False
 
@@ -279,12 +275,6 @@ def drawLayout1BPPImage(agendaList):
 
     taskY = 0
 
-    if dropboxRequiredForAgendaSync and (not settings["dropbox_token"] or not debugEnableAPIRequests):
-        drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1]),
-                       "[Dropbox disabled. Agenda not up-to-date]",
-                       font = fontUbuntuMono, fill = colorToFill(Color_EPaper_Black))
-        taskY += 1
-
     today = datetime.datetime.today()
     # This is a hack because descenders are taller
     taskMaxTextSize = drawBlack.textsize("Ty", font = fontUbuntuMono)
@@ -351,15 +341,6 @@ def imageDisplayOnEPaper(imageBlack, imageRed):
     time.sleep(2)
     epaperDisplay.sleep()
 
-# Import dropbox, if usable
-# Don't load something which can't be used (importing dropbox takes a while)
-if settings["dropbox_token"] and debugEnableAPIRequests:
-    print("Importing dropbox API...")
-    import dropbox
-    print("done.")
-else:
-    print("No dropbox_token or debugEnableAPIRequests is true. Dropbox is disabled")
-
 def getAllOrgScheduledTasks_Recursive(root, tasks = None):
     if not tasks:
         # Use dictionary for uniqueness
@@ -385,25 +366,9 @@ def convertDateDateTime(key):
 def getAgenda():
     taskList = []
 
-    for orgAgendaFile in settings["dropbox_org_agenda_files"]:
-        outputFilename = settings["dropbox_output_dir"] + "/" + orgAgendaFile
-        # Dropbox sync
-        if settings["dropbox_token"] and debugEnableAPIRequests:
-            dbx = dropbox.Dropbox(settings["dropbox_token"])
-            print("Downloading /{} to {}".format(orgAgendaFile, outputFilename))
-            outputPath = outputFilename[:outputFilename.rfind('/')]
-            if not os.path.exists(outputPath):
-                os.makedirs(outputPath)
-                dbx.files_download_to_file(outputFilename, "/" + orgAgendaFile)
-                # For all entries in org (don't need this because I have a limited set of agenda entries)
-                # for entry in dbx.files_list_folder(settings["dropbox_org_root"]).entries:
-                #     if type(entry) == dropbox.files.FolderMetadata:
-                #         print("Folder {}".format(entry.name))
-                #     else:
-                #         print("File {}".format(entry.name))
-
+    for orgAgendaFile in settings["org_agenda_files"]:
         # Parse org file for any scheduled tasks
-        orgRoot = orgparse.load(outputFilename)
+        orgRoot = orgparse.load(orgAgendaFile)
         scheduledTasks = getAllOrgScheduledTasks_Recursive(orgRoot)
 
         for taskKey, taskDatePair in scheduledTasks.items():
