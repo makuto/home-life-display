@@ -6,8 +6,6 @@ import json
 import os
 import orgparse
 
-# E-paper includes
-import epd7in5
 import time
 from PIL import Image,ImageDraw,ImageFont
 import traceback
@@ -23,8 +21,17 @@ debugEnableAPIRequests = False
 #  if Dropbox is disabled
 dropboxRequiredForAgendaSync = False
 
-debugEnableEPaperDisplay = True
-# debugEnableEPaperDisplay = False
+#debugEnableEPaperDisplay = True
+debugEnableEPaperDisplay = False
+
+width = 640
+height = 384
+
+if debugEnableEPaperDisplay:
+    # E-paper includes
+    import epd7in5
+    width = width
+    height = epd7in5.EPD_HEIGHT
 
 """
 Settings
@@ -115,7 +122,7 @@ def imageConvertMode1BPPToRGB(image, isZeroRed = False):
     Color_RGB_Red = (255, 0, 0)
     Color_RGB_White = (255, 255, 255)
 
-    convertedImage = Image.new("RGB", (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_RGB_White)
+    convertedImage = Image.new("RGB", (width, height), Color_RGB_White)
     convertedData = []
     for y in range(image.height):
         for x in range(image.width):
@@ -151,8 +158,8 @@ def drawLayout1BPPImage(agendaList):
 
     # Clear the frame
     # 1 = 1 byte per pixel mode
-    imageBlack = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
-    imageRed = Image.new('1', (epd7in5.EPD_WIDTH, epd7in5.EPD_HEIGHT), Color_EPaper_White)
+    imageBlack = Image.new('1', (width, height), Color_EPaper_White)
+    imageRed = Image.new('1', (width, height), Color_EPaper_White)
     drawBlack = ImageDraw.Draw(imageBlack)
     drawRed = ImageDraw.Draw(imageRed)
 
@@ -166,26 +173,26 @@ def drawLayout1BPPImage(agendaList):
     dateTextSize = drawBlack.multiline_textsize(dateString, font = fontUbuntuMonoHuge)
     dateTextHorizontalOffset = layout.topHeader - 15
     circleOffset = (-23, 34 + dateTextHorizontalOffset)
-    # drawBlack.arc((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
+    # drawBlack.arc((width - (dateTextSize[0]) + circleOffset[0],
     #           -dateTextSize[1] + circleOffset[1],
-    #           epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
+    #           width + (dateTextSize[0]) + circleOffset[0],
     #           dateTextSize[1] + circleOffset[1]),
     #          0, 360,
     #          fill = Color_EPaper_Black, width = 5)
 
     # Outer
-    drawBlack.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
+    drawBlack.ellipse((width - (dateTextSize[0]) + circleOffset[0],
                        -dateTextSize[1] + circleOffset[1],
-                       epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0],
+                       width + (dateTextSize[0]) + circleOffset[0],
                        dateTextSize[1] + circleOffset[1]),
                       fill = Color_EPaper_Black)
     # Inner
-    drawBlack.ellipse((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0] - 5,
+    drawBlack.ellipse((width - (dateTextSize[0]) + circleOffset[0] - 5,
                        -dateTextSize[1] + circleOffset[1] - 5,
-                       epd7in5.EPD_WIDTH + (dateTextSize[0]) + circleOffset[0] - 5,
+                       width + (dateTextSize[0]) + circleOffset[0] - 5,
                        dateTextSize[1] + circleOffset[1] - 5),
                       fill = Color_EPaper_White)
-    drawRed.multiline_text((epd7in5.EPD_WIDTH - dateTextSize[0] - layout.margins,
+    drawRed.multiline_text((width - dateTextSize[0] - layout.margins,
                             layout.margins + dateTextHorizontalOffset),
                            dateString,
                            font = fontUbuntuMonoHuge, fill = colorToFill(Color_EPaper_Red), align = "right")
@@ -242,6 +249,8 @@ def drawLayout1BPPImage(agendaList):
         # countdownRightAlign = (labelSize[0] - countdownSize[0])
         countdownColor = Color_EPaper_Red if countdownDays <= 3 else Color_EPaper_Black
 
+        print("{}\t{}".format(label, countdownDaysText))
+
         drawBlack.text((scheduleMargin + intervalOffset, layout.margins),
                        label, font = fontJapanese, fill = colorToFill(Color_EPaper_Black))
         if countdownColor == Color_EPaper_Red:
@@ -253,7 +262,7 @@ def drawLayout1BPPImage(agendaList):
 
     # Divider
     drawBlack.line((layout.margins, layout.topHeader,
-                    epd7in5.EPD_WIDTH - layout.margins, layout.topHeader),
+                    width - layout.margins, layout.topHeader),
                    fill = colorToFill(Color_EPaper_Black))
 
     #
