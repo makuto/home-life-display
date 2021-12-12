@@ -16,13 +16,6 @@ import traceback
 Debug settings to avoid overusing hardware/APIs
 """
 
-#debugEnableAPIRequests = True
-debugEnableAPIRequests = False
-
-# If the agenda files are synced some other way, don't print an error
-#  if Dropbox is disabled
-dropboxRequiredForAgendaSync = False
-
 debugEnableEPaperDisplay = True
 # debugEnableEPaperDisplay = False
 
@@ -136,9 +129,11 @@ fontUbuntuMonoSmall = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.t
 fontUbuntuMono = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 24)
 fontUbuntuMonoMedium = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 38)
 fontUbuntuMonoHuge = ImageFont.truetype('ubuntu-font-family-0.83/UbuntuMono-R.ttf', 64)
-# These are actually chinese fonts, that will support Japanese with some (confusing) variations
-# fontMicrohei = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 24)
-# fontMicroheiHuge = ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 38)
+
+fontUbuntuRegularSmall = ImageFont.truetype('ubuntu-font-family-0.83/Ubuntu-R.ttf', 18)
+fontUbuntuRegular = ImageFont.truetype('ubuntu-font-family-0.83/Ubuntu-R.ttf', 20)
+fontUbuntuRegularMedium = ImageFont.truetype('ubuntu-font-family-0.83/Ubuntu-R.ttf', 38)
+fontUbuntuRegularHuge = ImageFont.truetype('ubuntu-font-family-0.83/Ubuntu-R.ttf', 64)
 
 class Layout:
     def __init__(self):
@@ -163,7 +158,7 @@ def drawLayout1BPPImage(agendaList):
     timeNow = datetime.date.today()
     dateString = timeNow.strftime("%b\n%d")
     # Right align by getting text size
-    dateTextSize = drawBlack.multiline_textsize(dateString, font = fontUbuntuMonoHuge)
+    dateTextSize = drawBlack.multiline_textsize(dateString, font = fontUbuntuRegularHuge)
     dateTextHorizontalOffset = layout.topHeader - 15
     circleOffset = (-23, 34 + dateTextHorizontalOffset)
     # drawBlack.arc((epd7in5.EPD_WIDTH - (dateTextSize[0]) + circleOffset[0],
@@ -219,7 +214,6 @@ def drawLayout1BPPImage(agendaList):
         ('10M', datetime.date(2019, 11, 24)),
         ('1.5Y', datetime.date(2020, 9, 22))]
     # Interval countdowns
-    # TODO These don't match up to my actual schedule quite right yet
     for i in range(len(kanjiScheduleIntervalsJapanese)):
         label = kanjiScheduleIntervalsJapanese[i][0]
         labelSize = drawBlack.textsize(label, fontJapanese)
@@ -259,22 +253,16 @@ def drawLayout1BPPImage(agendaList):
     #
     # Agenda
     #
-    agendaHeaderSize = drawBlack.textsize('Agenda', font = fontUbuntuMonoMedium)
+    agendaHeaderSize = drawBlack.textsize('Agenda', font = fontUbuntuRegularMedium)
     drawRed.text((layout.margins, layout.topHeader),
                  'Agenda',
-                 font = fontUbuntuMonoMedium, fill = colorToFill(Color_EPaper_Red))
-    timeRangeSize = drawBlack.textsize('(30 Days)', font = fontUbuntuMonoSmall)
+                 font = fontUbuntuRegularMedium, fill = colorToFill(Color_EPaper_Red))
+    timeRangeSize = drawBlack.textsize('(30 Days)', font = fontUbuntuRegularSmall)
     drawBlack.text((layout.margins + agendaHeaderSize[0], layout.topHeader + (agendaHeaderSize[1] - timeRangeSize[1]) - 4),
                    " (30 Days)",
                    font = fontUbuntuMonoSmall, fill = colorToFill(Color_EPaper_Black))
 
     taskY = 0
-
-    if dropboxRequiredForAgendaSync and (not settings["dropbox_token"] or not debugEnableAPIRequests):
-        drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1]),
-                       "[Dropbox disabled. Agenda not up-to-date]",
-                       font = fontUbuntuMono, fill = colorToFill(Color_EPaper_Black))
-        taskY += 1
 
     today = datetime.datetime.today()
     # This is a hack because descenders are taller
@@ -296,38 +284,31 @@ def drawLayout1BPPImage(agendaList):
         inSameMonth = (i > 0
                        and dateTaskPair[0].month == agendaList[i - 1][0].month)
 
+        # TODO: Calculate this from the font size
+        dateOffset = 80
+
         if onSameDay:
-            # Continue the date
-            taskStr = '       {}'.format(dateTaskPair[1])
+            pass # Don't write the same date over again
         elif inSameMonth:
             # Leave off the month string
-            taskStr = '    {} {}'.format(dateTaskPair[0].strftime('%d'), dateTaskPair[1])
-        else:
-            taskStr = '{} {}'.format(dateTaskPair[0].strftime('%b %d'), dateTaskPair[1])
-
-        if taskColor == Color_EPaper_Red:
-            drawRed.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
-                         taskStr,
-                         font = fontUbuntuMono, fill = colorToFill(taskColor))
+            drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+                           '    {}'.format(dateTaskPair[0].strftime('%d')),
+                           font = fontUbuntuMonoSmall, fill = colorToFill(taskColor))
         else:
             drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
-                           taskStr,
-                           font = fontUbuntuMono, fill = colorToFill(taskColor))
+                           '{}'.format(dateTaskPair[0].strftime('%b %d')),
+                           font = fontUbuntuMonoSmall, fill = colorToFill(taskColor))
+
+        if taskColor == Color_EPaper_Red:
+            drawRed.text((layout.margins + dateOffset, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+                         dateTaskPair[1],
+                         font = fontUbuntuRegular, fill = colorToFill(taskColor))
+        else:
+            drawBlack.text((layout.margins + dateOffset, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+                           dateTaskPair[1],
+                           font = fontUbuntuRegular, fill = colorToFill(taskColor))
 
         taskY += 1
-
-    # draw.multiline_text((layout.margins, layout.topHeader + 20), agendaStr,
-    # font = fontUbuntuMono, fill = Color_EPaper_Black)
-    # draw.text((layout.margins, layout.topHeader + 20), 'TODO Make agenda work', font = fontUbuntuMono, fill = Color_EPaper_Black)
-    # draw.text((layout.margins, layout.topHeader + 40), u'食べて太鼓をしたいだ。', font = fontJapanese, fill = Color_EPaper_Black)
-
-    # draw.line((70, 50, 20, 100), fill = 0)
-    # draw.rectangle((20, 50, 70, 100), outline = 0)
-    # draw.line((165, 50, 165, 100), fill = 0)
-    # draw.line((140, 75, 190, 75), fill = 0)
-    # draw.arc((140, 50, 190, 100), 0, 360, fill = 0)
-    # draw.rectangle((80, 50, 130, 100), fill = 0)
-    # draw.chord((200, 50, 250, 100), 0, 360, fill = 0)
 
     return (imageBlack, imageRed)
 
@@ -341,15 +322,6 @@ def imageDisplayOnEPaper(imageBlack, imageRed):
     epaperDisplay.display(epaperDisplay.getbuffer(imageBlack), epaperDisplay.getbuffer(imageRed))
     time.sleep(2)
     epaperDisplay.sleep()
-
-# Import dropbox, if usable
-# Don't load something which can't be used (importing dropbox takes a while)
-if settings["dropbox_token"] and debugEnableAPIRequests:
-    print("Importing dropbox API...")
-    import dropbox
-    print("done.")
-else:
-    print("No dropbox_token or debugEnableAPIRequests is true. Dropbox is disabled")
 
 def getAllOrgScheduledTasks_Recursive(root, tasks = None):
     if not tasks:
@@ -376,23 +348,8 @@ def convertDateDateTime(key):
 def getAgenda():
     taskList = []
 
-    for orgAgendaFile in settings["dropbox_org_agenda_files"]:
-        outputFilename = settings["dropbox_output_dir"] + "/" + orgAgendaFile
-        # Dropbox sync
-        if settings["dropbox_token"] and debugEnableAPIRequests:
-            dbx = dropbox.Dropbox(settings["dropbox_token"])
-            print("Downloading /{} to {}".format(orgAgendaFile, outputFilename))
-            outputPath = outputFilename[:outputFilename.rfind('/')]
-            if not os.path.exists(outputPath):
-                os.makedirs(outputPath)
-                dbx.files_download_to_file(outputFilename, "/" + orgAgendaFile)
-                # For all entries in org (don't need this because I have a limited set of agenda entries)
-                # for entry in dbx.files_list_folder(settings["dropbox_org_root"]).entries:
-                #     if type(entry) == dropbox.files.FolderMetadata:
-                #         print("Folder {}".format(entry.name))
-                #     else:
-                #         print("File {}".format(entry.name))
-
+    for orgAgendaFile in settings["org_agenda_files"]:
+        outputFilename = settings["output_dir"] + "/" + orgAgendaFile
         # Parse org file for any scheduled tasks
         orgRoot = orgparse.load(outputFilename)
         scheduledTasks = getAllOrgScheduledTasks_Recursive(orgRoot)
@@ -404,8 +361,6 @@ def getAgenda():
     return sortedTaskList
 
 def main():
-    if not debugEnableAPIRequests:
-        print("Debug mode: no API requests will occur")
     if not debugEnableEPaperDisplay:
         print("Debug mode: no E-Paper actions will occur")
 

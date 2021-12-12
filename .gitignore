@@ -110,3 +110,7 @@ output*.png
 
 service_cron_status.txt
 agenda/
+
+# These are soft linked
+epd7in5.py
+epdconfig.py
