@@ -53,14 +53,6 @@ I use [[https://orgmode.org/][Org-mode]] for my Agenda:
 sudo pip3 install orgparse
 #+END_SRC
 **** Fonts
-
-Download the [[https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip][Ubuntu Font Family]] (see [[https://design.ubuntu.com/font/][design page]] for more info on the font) and extract it:
-
-#+BEGIN_SRC sh
-curl https://assets.ubuntu.com/v1/fad7939b-ubuntu-font-family-0.83.zip > ubuntu-font.zip
-unzip ubuntu-font.zip
-#+END_SRC
-
 For Japanese:
 
 #+BEGIN_SRC sh
