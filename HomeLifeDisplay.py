@@ -294,27 +294,29 @@ def drawLayout1BPPImage(agendaList):
                        and dateTaskPair[0].month == agendaList[i - 1][0].month)
 
         # TODO: Calculate this from the font size
-        dateOffset = 80
+        dateOffset = 69
 
         if onSameDay:
             pass # Don't write the same date over again
         elif inSameMonth:
             # Leave off the month string
-            drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+            drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY) + 2),
                            '    {}'.format(dateTaskPair[0].strftime('%d')),
                            font = fontUbuntuMonoSmall, fill = colorToFill(taskColor))
         else:
-            drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
+            drawBlack.text((layout.margins, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY) + 2),
                            '{}'.format(dateTaskPair[0].strftime('%b %d')),
                            font = fontUbuntuMonoSmall, fill = colorToFill(taskColor))
 
+        # Add a space at the end to work around bad PIL font clipping
+        # See https://stackoverflow.com/questions/1933766/fonts-clipping-with-pil
         if taskColor == Color_EPaper_Red:
             drawRed.text((layout.margins + dateOffset, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
-                         dateTaskPair[1],
+                         '{}   '.format(dateTaskPair[1]),
                          font = fontUbuntuRegular, fill = colorToFill(taskColor))
         else:
             drawBlack.text((layout.margins + dateOffset, layout.topHeader + agendaHeaderSize[1] + (taskMaxTextSize[1] * taskY)),
-                           dateTaskPair[1],
+                           '{}   '.format(dateTaskPair[1]),
                            font = fontUbuntuRegular, fill = colorToFill(taskColor))
 
         taskY += 1
